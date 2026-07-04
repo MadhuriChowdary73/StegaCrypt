@@ -1,0 +1,22 @@
+# Virtual Environment
+venv/
+
+# Python Cache
+__pycache__/
+*.py[cod]
+
+# VS Code Settings
+.vscode/
+
+# Environment Variables (future use)
+.env
+
+# Operating System Files
+.DS_Store
+Thumbs.db
+
+# Generated Reports (optional)
+reports/
+
+# Temporary Files
+*.log
