@@ -8,15 +8,18 @@ __pycache__/
 # VS Code Settings
 .vscode/
 
-# Environment Variables (future use)
+# Environment Variables
 .env
 
 # Operating System Files
 .DS_Store
 Thumbs.db
 
-# Generated Reports (optional)
+# Generated Reports
 reports/
 
 # Temporary Files
 *.log
+
+# Generated Images
+images/cover/output/
