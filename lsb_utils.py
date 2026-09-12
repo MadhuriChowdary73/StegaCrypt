@@ -5,6 +5,8 @@ def embed_bit(value:int,bit:int) -> int:
         value=value | 0b00000001
     return value
 
+
+
 def extract_bit(value:int) -> int:
      """
     Extract the least significant bit.
