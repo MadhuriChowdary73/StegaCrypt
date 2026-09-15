@@ -67,6 +67,36 @@ def validate_message_size(
         )
 
 
+def validate_payload_size(
+    image: Image.Image,
+    payload_text: str
+) -> None:
+    """
+    Validate that the full payload string (including END_MARKER)
+    fits within the available image capacity.
+
+    Capacity = width × height bits (1 bit per pixel, red-channel LSB).
+
+    Args:
+        image (Image.Image): Cover/stego image.
+        payload_text (str): The serialized payload string to embed.
+
+    Raises:
+        ValueError: If the payload is too large to fit in the image.
+    """
+    binary_payload = text_to_binary(payload_text + END_MARKER)
+
+    required_bits = len(binary_payload)
+    available_bits = get_image_capacity(image)
+
+    if required_bits > available_bits:
+        raise ValueError(
+            f"Payload is too large to fit in this image. "
+            f"Required: {required_bits} bits, "
+            f"Available: {available_bits} bits."
+        )
+
+
 def embed_message(
     image: Image.Image,
     message: str
