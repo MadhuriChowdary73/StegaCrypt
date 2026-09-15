@@ -4,7 +4,7 @@ secure_steganography.py
 Combines AES encryption with
 LSB steganography.
 
-Author: Madhuri
+Author: Madhuri,kundan
 Project: StegaCrypt
 """
 
