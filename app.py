@@ -43,6 +43,9 @@ for _k, _v in {
     "app_error": None,
     "show_dec_popup": False,
     "dec_secret_msg": "",
+    "show_enc_popup": False,
+    "enc_stego_data": None,
+    "dark_theme": False,
 }.items():
     if _k not in st.session_state:
         st.session_state[_k] = _v
@@ -89,6 +92,20 @@ st.html(_h("""
   --max-w:      1240px;
   --font-body:  'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   --font-pixel: 'Press Start 2P', monospace;
+}
+
+:root.dark-theme {
+  --bg:         #111110;
+  --surface:    #1A1A19;
+  --border:     #2A2A28;
+  --border-2:   #3A3A38;
+  --text-1:     #F0F0EC;
+  --text-2:     #B0B0A8;
+  --text-3:     #707068;
+  --green:      #52B788;
+  --green-mid:  #6FCF97;
+  --green-lt:   #1A2E22;
+  --green-px:   #2D4A3A;
 }
 
 *, *::before, *::after { box-sizing: border-box; }
@@ -570,10 +587,18 @@ def render_navbar():
         {LOCK_SVG}
         <span class="sc-nav-wordmark">Stega<span>Crypt</span></span>
       </a>
-      <a href="/?page=encrypt" target="_self" class="sc-nav-cta">Get Started →</a>
+      <div style="display:flex;align-items:center;gap:1rem;">
+        <a href="/?page=encrypt" target="_self" class="sc-nav-cta">Get Started →</a>
+      </div>
     </div>
     """
     st.html(_h(nav_html))
+    _col_spacer, _col_toggle = st.columns([0.88, 0.12])
+    with _col_toggle:
+        dark = st.toggle("🌙 Dark", value=st.session_state.dark_theme, key="theme_toggle_landing")
+        if dark != st.session_state.dark_theme:
+            st.session_state.dark_theme = dark
+            st.rerun()
 
 def render_tool_navbar():
     p = st.session_state.page
@@ -592,6 +617,12 @@ def render_tool_navbar():
     </div>
     """
     st.html(_h(tool_nav_html))
+    _col_spacer, _col_toggle = st.columns([0.88, 0.12])
+    with _col_toggle:
+        dark = st.toggle("🌙 Dark", value=st.session_state.dark_theme, key="theme_toggle_tool")
+        if dark != st.session_state.dark_theme:
+            st.session_state.dark_theme = dark
+            st.rerun()
 
 page = st.session_state.page
 
@@ -748,12 +779,13 @@ elif page in ["encrypt", "decrypt"]:
                     try:
                         enc_image_file.seek(0)
                         img = Image.open(enc_image_file).convert("RGB")
-                        stego_img = encrypt_and_embed_with_password(img, enc_message, enc_password)
+                        encrypt_and_embed_with_password(img, enc_message, enc_password)
                         buf = BytesIO()
-                        stego_img.save(buf, format="PNG")
-                        st.success("Message encrypted and embedded successfully!")
+                        img.save(buf, format="PNG")
+                        st.session_state.enc_stego_data = buf.getvalue()
+                        st.session_state.show_enc_popup = True
                         st.toast("Encryption completed! 🔒")
-                        st.download_button("Download Stego Image (PNG)", data=buf.getvalue(), file_name="stegacrypt_encoded.png", mime="image/png", width='content')
+                        st.rerun()
                     except Exception as e:
                         st.error(f"Error embedding message: {str(e)}")
 
@@ -817,3 +849,51 @@ def show_decryption_result(msg: str):
 
 if st.session_state.get("show_dec_popup") and st.session_state.get("dec_secret_msg"):
     show_decryption_result(st.session_state.dec_secret_msg)
+
+# ── Encryption result popup dialog ──────────────────────────────────────────
+@st.dialog("🔒 Encryption Successful", width="large")
+def show_encryption_result():
+    st.markdown(
+        """
+        <div style="display:flex;align-items:center;gap:0.8rem;margin-bottom:1rem;">
+            <div style="width:46px;height:46px;background:#EBF5EF;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.4rem;">🔒</div>
+            <div>
+                <div style="font-weight:700;font-size:1.05rem;color:var(--text-1, #111110);">Message Encrypted & Embedded</div>
+                <div style="font-size:0.82rem;color:var(--text-2, #6B7280);">Your secret message has been encrypted and hidden inside the image. Download the stego image below.</div>
+            </div>
+        </div>
+        <div style="background:#F0FFF4;border:1.5px solid #C6F6D5;border-radius:10px;padding:1rem 1.2rem;font-size:0.9rem;color:#276749;line-height:1.6;margin-bottom:1.2rem;">
+            ✅ <strong>AES-256 encryption</strong> applied via Fernet with PBKDF2 key derivation.<br>
+            ✅ <strong>LSB steganography</strong> embedding completed successfully.<br>
+            ✅ <strong>SHA-256 integrity hash</strong> stored for tamper detection.
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+    stego_data = st.session_state.get("enc_stego_data")
+    if stego_data:
+        col_dl, col_close = st.columns([1, 1])
+        with col_dl:
+            st.download_button(
+                "⬇ Download Stego Image (PNG)",
+                data=stego_data,
+                file_name="stegacrypt_encoded.png",
+                mime="image/png",
+                type="primary",
+                width='content',
+                key="dl_enc_popup"
+            )
+        with col_close:
+            if st.button("✕ Close", type="secondary", width='content', key="close_enc_popup"):
+                st.session_state.show_enc_popup = False
+                st.session_state.enc_stego_data = None
+                st.rerun()
+
+if st.session_state.get("show_enc_popup") and st.session_state.get("enc_stego_data"):
+    show_encryption_result()
+
+# ── Apply dark theme via JS injection ───────────────────────────────────────
+if st.session_state.dark_theme:
+    st.html('<script>document.documentElement.classList.add("dark-theme");</script>')
+else:
+    st.html('<script>document.documentElement.classList.remove("dark-theme");</script>')
